@@ -1,0 +1,64 @@
+package com.example.camerax
+
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Size
+import android.graphics.Matrix
+import android.os.Handler
+import android.os.HandlerThread
+import android.util.Log
+import android.util.Rational
+import android.view.Surface
+import android.view.TextureView
+import android.view.ViewGroup
+import android.widget.ImageButton
+import org.jetbrains.anko.toast
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.camera.core.*
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import java.io.File
+import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
+
+class MainActivity : AppCompatActivity(),LifecycleOwner {
+    companion object {
+        private const val REQUEST_CODE_PERMISSIONS = 10
+    }
+
+
+    // This is an array of all the permission specified in the manifest
+    private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        viewFinder = findViewById(R.id.view_finder)
+
+        // Request camera permissions
+        if (allPermissionsGranted()) {
+            viewFinder.post { startCamera(this) }
+        } else {
+            ActivityCompat.requestPermissions(
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        }
+
+        // Every time the provided texture view changes, recompute layout
+        viewFinder.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateTransform()
+        }
+
+    }
+    private lateinit var viewFinder: TextureView
+
+
+
+
+    /**
+     * Process result from permission request dialog box, has the request
+     * been granted? If yes, start Camera. Otherwise display a toast
